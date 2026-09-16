@@ -3,7 +3,7 @@
   "private": true,
   "scripts": {
     "build": "turbo run build",
-    "dev": "turbo run dev",
+    "dev": "powershell.exe -NoProfile -ExecutionPolicy Bypass -Command \"Get-NetTCPConnection | Where-Object { $_.LocalPort -in 3002,3003,8000 } | ForEach-Object { Stop-Process -Id $_.OwningProcess -Force -ErrorAction SilentlyContinue }; pnpm --parallel --filter ./apps/docs --filter ./apps/http-server --filter ./apps/ws-backend run dev\"",
     "lint": "turbo run lint",
     "format": "prettier --write \"**/*.{ts,tsx,md}\"",
     "check-types": "turbo run check-types"
@@ -15,6 +15,6 @@
   },
   "packageManager": "pnpm@11.25.0",
   "engines": {
-    "node": ">=24"
+    "node": ">=22"
   }
 }

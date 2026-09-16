@@ -1,6 +1,6 @@
-import express, { Router } from "express";
+import { Router } from "express";
 
-export const Userrouter:Router = Router();
+const Userrouter: Router = Router();
 
 Userrouter.post("/signup", (req, res) => {
   res.status(200).json({ message: "signup ok" });
@@ -10,3 +10,4 @@ Userrouter.post("/signin", (req, res) => {
   res.status(200).json({ message: "signin ok" });
 });
 
+export { Userrouter };
