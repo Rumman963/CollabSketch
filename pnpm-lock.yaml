@@ -55,6 +55,18 @@ importers:
         specifier: 7.0.2
         version: 7.0.2
 
+  apps/http-server:
+    devDependencies:
+      '@repo/typescript-config':
+        specifier: workspace:*
+        version: link:../../packages/typescript-config
+
+  apps/ws-backend:
+    devDependencies:
+      '@repo/typescript-config':
+        specifier: workspace:*
+        version: link:../../packages/typescript-config
+
   packages/eslint-config:
     devDependencies:
       '@babel/core':
