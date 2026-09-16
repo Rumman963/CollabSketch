@@ -1,0 +1,19 @@
+{
+  "name": "http",
+  "version": "1.0.0",
+  "description": "",
+  "main": "index.js",
+  "scripts": {
+    "build":"tsc -b",
+    "dev":"pnpm run build && node dist/index.js"
+  },
+  "dependencies": {
+
+    "@repo/typescript-config":"workspace:*"
+
+  },
+  "keywords": [],
+  "author": "",
+  "license": "ISC",
+  "type": "commonjs"
+}
