@@ -82,6 +82,9 @@ importers:
 
   apps/ws-backend:
     dependencies:
+      jsonwebtoken:
+        specifier: ^9.0.3
+        version: 9.0.3
       ws:
         specifier: ^8.21.3
         version: 8.21.3
@@ -95,9 +98,6 @@ importers:
       '@types/ws':
         specifier: ^8.18.1
         version: 8.18.1
-      jsonwebtoken:
-        specifier: ^9.0.3
-        version: 9.0.3
 
   packages/backend-common:
     dependencies:
