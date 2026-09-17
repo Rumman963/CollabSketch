@@ -1,17 +1,62 @@
 import express from "express";
-import { Userrouter } from "./routes/user.js";
+import {JWT_SECRET} from "@repo/backend-common/config"
+import { UserSchema , SigninSchema , CreateRoomSchema} from "@repo/common"
+import jwt from "jsonwebtoken"
 
 const app = express();
-const router = express.Router();
-
 app.use(express.json());
-router.use("/app/v1/user", Userrouter);
-app.use(router);
 
-app.get("/health", (_req, res) => {
-  res.status(200).json({ status: "ok" });
+app.post("signup" , async (req,res)=>{
+  const parseSchema = UserSchema.safeParse(req.body);
+  if(!parseSchema.success){
+    return res.status(400).json({
+      message:"Invalid credentials"
+    })
+  }
+    const {email , name , password} = parseSchema.data
+
+    try{
+      const existingUser = await UserModel.findOne({email});
+      
+      if(existingUser){
+        return res.status(409).json({
+          message:"user already exists"
+        })
+      }
+
+      const dbUser = await UserModel.create({
+        email,
+        name,
+        password
+      });
+
+
+      const token = jwt.sign({
+        userId:dbUser._id
+      } , JWT_SECRET)
+
+       res.json({
+        message:"user created successfully",
+        token:token
+     })
+
+
+
+    }catch(error){
+      res.status(500).json({ message: "Something went wrong" });
+
+    }
+
+
 });
 
-app.listen(3003, () => {
-  console.log("HTTP server running on http://localhost:3003");
-});
+
+
+
+
+
+
+
+
+
+app.listen(3003);
