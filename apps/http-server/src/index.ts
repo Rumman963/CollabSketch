@@ -1,5 +1,5 @@
 import express from "express";
-import {JWT_SECRET} from "@repo/backend-common/config"
+import { JWT_SECRET } from "@repo/backend-common/config"
 import { UserSchema , SigninSchema , CreateRoomSchema} from "@repo/common"
 import jwt from "jsonwebtoken"
 import { authMiddleware } from "./middleware.js";
@@ -19,79 +19,99 @@ app.post("/signup" , async (req,res)=>{
     return;
   }
 
-    const {email, password , name } = parseSchema.data;
-   
-   
-  try{
+  const { email, password, name } = parseSchema.data;
 
+  try{
     const existingUser = await prismaClient.user.findFirst({
       where: {
-        email
+        email:parseSchema.data.email 
       }
     })
 
     if(existingUser){
       return res.status(409).json({
-
-     message:"User already exists"
-
-    })
-}  
-  const hashedPassword = await bcrypt.hash(password, 10);
-  const user = await prismaClient.user.create({
-   data:{
-          email:parseSchema.data?.email,
-          password:hashedPassword,
-          name:parseSchema.data?.name
-   }
-})
-
-       res.json({
-        message:"user created successfully"
-     })
-
-
-    } catch(e){
-      console.log(e);
-      res.status(500).json({
-        message:"Something went wrong"
+        message:"User already exists"
       })
     }
+
+    const hashedPassword = await bcrypt.hash(password, 10);
+    await prismaClient.user.create({
+      data: {
+        email: parseSchema.data.email,
+        password: hashedPassword,   
+        name: parseSchema.data.name
+      }
+    });
+
+    res.json({
+      message:"user created successfully"
+    })
+
+  } catch(e){
+    console.log(e);
+    res.status(500).json({
+      message:"Something went wrong"
+    })
+  }
 
 });
 
 
-app.post("/signin" ,authMiddleware, (req,res)=>{
+app.post("/signin" , async(req,res)=>{
 
   const parseSchema = SigninSchema.safeParse(req.body);
   if(!parseSchema.success){
     return res.status(400).json({
       message:"Invalid credentials"
     });
-      
-    return;
   }
 
-  const {email , password} = parseSchema.data;
+  const {email , password} = parseSchema.data
+
+    try{ 
+    const existingUser = await prismaClient.user.findUnique({
+      where:{
+        email:parseSchema.data.email
+      }
+    })
+
+      if(!existingUser){
+      return res.status(401).json({
+       message:"Invalid credentials"
+     })
+  }
+      
+   const isPasswordCorrect = await bcrypt.compare(parseSchema.data.password, existingUser.password);
+
+   if(!isPasswordCorrect){
+             return res.status(401).json({ message: "Invalid credentials" });
+
+        }
 
 
   if (!JWT_SECRET) {
-  return res.status(500).json({
-     message: "JWT secret is not configured"
-     });
+      return res.status(500).json({
+      message: "JWT secret is not configured"
+   });
+} 
 
-  } 
-  
-  const token = jwt.sign({
-    userId: req.userId
+    const token = jwt.sign({
+    userId: existingUser?.id
 } , JWT_SECRET)
 
 
-   res.json({
-    token
-   })
-  
- 
+    res.status(200).json({
+      message:"Signin Successfully",
+      token
+    })
+
+  }catch(e){
+    console.log(e);
+    res.status(500).json({
+   message:"Something went wrong"
+  })
+
+  }
 });
 
 
