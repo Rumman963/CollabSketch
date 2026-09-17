@@ -4,7 +4,6 @@ import { UserSchema , SigninSchema , CreateRoomSchema} from "@repo/common"
 import jwt from "jsonwebtoken"
 import { authMiddleware } from "./middleware.js";
 import {prismaClient} from "@repo/db/client"
-import { parse } from "path";
 
 const app = express();
 app.use(express.json());
@@ -21,7 +20,7 @@ app.post("signup" , async (req,res)=>{
    
   try{
 
-  await prismaClient.user.create({
+  const user = await prismaClient.user.create({
    data:{
           email:parseSchema.data?.email,
           password:parseSchema.data?.password,
@@ -30,7 +29,7 @@ app.post("signup" , async (req,res)=>{
 })
 
        res.json({
-        message:"user created successfully",
+        userId: user.id,
      })
     }catch(e){
       res.status(411).json({
