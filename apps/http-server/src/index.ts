@@ -4,6 +4,7 @@ import { UserSchema , SigninSchema , CreateRoomSchema} from "@repo/common"
 import jwt from "jsonwebtoken"
 import { authMiddleware } from "./middleware.js";
 import {prismaClient} from "@repo/db/client"
+import bcrypt from "bcrypt";
 
 const app = express();
 app.use(express.json());
@@ -17,24 +18,43 @@ app.post("/signup" , async (req,res)=>{
 
     return;
   }
+
+    const {email, password , name } = parseSchema.data;
+   
    
   try{
 
+    const existingUser = await prismaClient.user.findFirst({
+      where: {
+        email
+      }
+    })
+
+    if(existingUser){
+      return res.status(409).json({
+
+     message:"User already exists"
+
+    })
+}  
+  const hashedPassword = await bcrypt.hash(password, 10);
   const user = await prismaClient.user.create({
    data:{
           email:parseSchema.data?.email,
-          password:parseSchema.data?.password,
+          password:hashedPassword,
           name:parseSchema.data?.name
    }
 })
 
        res.json({
-        userId: user.id,
+        message:"user created successfully"
      })
-    }catch(e){
+
+
+    } catch(e){
       console.log(e);
-      res.status(411).json({
-        message:"User already exists"
+      res.status(500).json({
+        message:"Something went wrong"
       })
     }
 
