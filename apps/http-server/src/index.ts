@@ -8,7 +8,7 @@ import {prismaClient} from "@repo/db/client"
 const app = express();
 app.use(express.json());
 
-app.post("signup" , async (req,res)=>{
+app.post("/signup" , async (req,res)=>{
   const parseSchema = UserSchema.safeParse(req.body);
   if(!parseSchema.success){
     return res.status(400).json({
@@ -32,6 +32,7 @@ app.post("signup" , async (req,res)=>{
         userId: user.id,
      })
     }catch(e){
+      console.log(e);
       res.status(411).json({
         message:"User already exists"
       })
