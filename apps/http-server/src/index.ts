@@ -4,24 +4,39 @@ import { UserSchema , SigninSchema , CreateRoomSchema} from "@repo/common"
 import jwt from "jsonwebtoken"
 import { authMiddleware } from "./middleware.js";
 import {prismaClient} from "@repo/db/client"
+import { parse } from "path";
 
 const app = express();
 app.use(express.json());
 
-app.post("signup" , (req,res)=>{
+app.post("signup" , async (req,res)=>{
   const parseSchema = UserSchema.safeParse(req.body);
   if(!parseSchema.success){
     return res.status(400).json({
       message:"Invalid credentials"
     })
-  }
-    const {email , name , password} = parseSchema.data
 
-  
+    return;
+  }
+   
+  try{
+
+  await prismaClient.user.create({
+   data:{
+          email:parseSchema.data?.email,
+          password:parseSchema.data?.password,
+          name:parseSchema.data?.name
+   }
+})
+
        res.json({
         message:"user created successfully",
      })
-
+    }catch(e){
+      res.status(411).json({
+        message:"User already exists"
+      })
+    }
 
 });
 
