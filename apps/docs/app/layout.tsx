@@ -18,9 +18,8 @@ export default function RootLayout({
 }>) {
   return (
     <html lang="en" className={cn("font-sans", geist.variable)}>
-      <body className="bg-purple-400">
+      <body className="bg-amber-100">
         {children}
-        
       </body>
     </html>
   );
