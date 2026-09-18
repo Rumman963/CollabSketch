@@ -126,10 +126,34 @@ app.post("/room" ,authMiddleware , async (req,res)=>{
     return
   } 
 
+  const userId = req.userId
+  if (!userId) {
+    return res.status(401).json({
+      message: "Unauthorized"
+    });
+  }
+
+  try{
+
+  
+  const room = await prismaClient.room.create({
+    data:{
+      slug:parseSchema.data.name,
+      adminId:userId
+
+    }
+  })
 
   res.json({
-    roomId:123
+    roomId:room.id
   })
+  } catch(e){
+
+  res.status(500).json({
+   message:"room already exists with this name"
+  })
+
+  }  
 
 })
 
