@@ -11,7 +11,7 @@ export default function SignupPage() {
     <div className="relative flex min-h-svh flex-col items-center justify-center overflow-hidden bg-muted p-6 md:p-10">
       <FlickeringGrid 
       className="absolute inset-0 z-0 size-full"
-        squareSize={4}
+        squareSize={10}
         gridGap={6}
         color="#6B7280"
         maxOpacity={0.3}

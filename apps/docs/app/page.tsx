@@ -1,24 +1,27 @@
-"use client"
-import { Button } from "@/components/ui/button";
-import { useState } from "react"
+
+import {FlickeringGrid} from "@/components/ui/flickering-grid"
 
 
 export default function Home() {
-  const [count , setcount] = useState(0);
+  
 
   return(
+
+    
     <div>
-
-    <div className="p-rounded text-blue-600">
-      <Button size="lg" variant="destructive" onClick={()=>{ 
-        setcount(c=>c+1)
-        
-      }}>Click ME</Button>
-       <p>Count: {count}</p>  
-
-
+      <FlickeringGrid
+      className="absolute inset-0 z-0 size-full"
+      squareSize={10}
+      gridGap={6}
+      color="#6B7280"
+      maxOpacity={0.3}
+      flickerChance={0.1}
+      />
     </div>
-    </div>
+
+
+
+
 
 
 

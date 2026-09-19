@@ -5,6 +5,7 @@ import axios from "axios";
 import { HTTP_BACKEND } from "@/lib/config";
 import { cn } from "cn"
 import {Preview} from "@/components/preview"
+import { UserSchema } from "@repo/common"
 
 import { Button } from "@/components/ui/button"
 import { Card, CardContent } from "@/components/ui/card"
@@ -28,18 +29,34 @@ export function SignupForm({
   const [email, setEmail] = useState("");
   const [password , setPassword] = useState("");
   const [error, setError] = useState("");
+  const [loading, setLoading] = useState(false)
 
   async function handleSubmit(e:React.SubmitEvent<HTMLFormElement>){
     e.preventDefault()
     setError("")
 
-    try{
+    if (password.length < 8) {
+    setError("Password must be at least 8 characters")
+    return
+}
+
+    const result  = UserSchema.safeParse({name, email , password})
+    if(!result.success){
+    setError("Please check your name and email")
+    return
+}   
+
+setLoading(true)
+
+  try{
       await axios.post(`${HTTP_BACKEND}/signup` , {name,email,password})
       router.push("/login")
     }catch(err:any){
       setError(err.response?.data?.message || "something went wrong")
 
-    }
+    } finally {
+    setLoading(false)
+  }
 
   }
 
@@ -92,7 +109,9 @@ export function SignupForm({
                 </FieldDescription>
                 {error && <p className="text-center text-sm text-destructive">{error}</p>}
               <Field>
-                <Button type="submit">Create Account</Button>
+                <Button type="submit" disabled={loading}>
+                  {loading ? "Creating Account..." : "Create Account"}
+                  </Button>
               </Field>
               <FieldDescription className="text-center">
                 Already have an account? <Link href="/login">Sign in</Link>
@@ -105,7 +124,7 @@ export function SignupForm({
         </CardContent>
       </Card>
       <FieldDescription className="px-6 text-center">
-        By clicking continue, you agree to our <a href="#">Terms of Service</a>{" "}
+        By clicking continue, you agree to our <Link href="#">Terms of Service</Link>{" "}
         and <a href="#">Privacy Policy</a>.
       </FieldDescription>
     </div>
