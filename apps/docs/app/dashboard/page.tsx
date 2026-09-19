@@ -7,12 +7,14 @@ import { HTTP_BACKEND } from "@/lib/config"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { Card, CardContent } from "@/components/ui/card"
+import { FlickeringGrid } from "@/components/ui/flickering-grid"
 
 export default function Dashboard() {
   const router = useRouter()
   const [view, setView] = useState<"choose" | "collab">("choose")
   const [roomName, setRoomName] = useState("")
   const [error, setError] = useState("")
+   
 
   useEffect(() => {
     if (!localStorage.getItem("token")) {
@@ -38,7 +40,7 @@ export default function Dashboard() {
   // screen 2: room options for Collab Mode
   if (view === "collab") {
     return (
-      <div className="flex min-h-svh items-center justify-center bg-muted p-6">
+      <div className="flex min-h-svh items-center justify-center bg-blue-500 p-6">
         <div className="w-full max-w-sm space-y-4">
           <Button variant="ghost" onClick={() => setView("choose")}>
             <ArrowLeft /> Back
@@ -73,7 +75,7 @@ export default function Dashboard() {
         >
           <CardContent className="flex flex-col items-center gap-3 p-8 text-center">
             <div className="rounded-full bg-violet-100 p-4">
-              <PenTool className="size-8 text-violet-600" />
+              <PenTool className="size-8 text-blue-600" />
             </div>
             <h2 className="text-xl font-semibold">Single Mode</h2>
             <p className="text-sm text-muted-foreground">
