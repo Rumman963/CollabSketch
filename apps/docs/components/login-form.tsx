@@ -1,4 +1,11 @@
+"use client"
+import { useState } from "react";
+import { useRouter } from "next/navigation";
+import axios from "axios";
+import { HTTP_BACKEND } from "@/lib/config";
 import { cn } from "cn"
+import { SigninSchema } from "@repo/common"
+import Link from "next/link";
 
 import { Button } from "@/components/ui/button"
 import { Card, CardContent } from "@/components/ui/card"
@@ -16,11 +23,46 @@ export function LoginForm({
   className,
   ...props
 }: React.ComponentProps<"div">) {
+   
+  const router = useRouter();
+  const [email , setEmail] = useState("");
+  const [password , setPassword] = useState("");
+  const [error , setError] = useState("");
+  const [loading, setLoading] = useState(false)
+
+  async function handleSubmit(e: React.SubmitEvent<HTMLFormElement>){
+    e.preventDefault()
+    setError("")
+  
+  const result  = SigninSchema.safeParse({email , password})
+  if(!result.success){
+    setError("please enter a valid email")
+    return
+  }
+
+  setLoading(true)
+  try{
+   const res =  await axios.post(`${HTTP_BACKEND}/signin` , {
+      email,
+      password
+    })
+
+     localStorage.setItem("token", res.data.token)
+     router.push("/dashboard")
+  }
+  catch(err:any){
+    setError(err.response?.data?.message || "Something went wrong")
+  }
+  finally {
+      setLoading(false)
+    }
+  } 
+
   return (
     <div className={cn("flex flex-col gap-6", className)} {...props}>
       <Card className="overflow-hidden p-0 bg-neutral-100">
         <CardContent className="grid p-0 md:grid-cols-2">
-          <form className="p-6 md:p-8">
+          <form className="p-6 md:p-8" onSubmit={handleSubmit}>
             <FieldGroup>
               <div className="flex flex-col items-center gap-2 text-center">
                 <h1 className="text-2xl font-bold">Welcome back</h1>
@@ -32,8 +74,10 @@ export function LoginForm({
                 <FieldLabel htmlFor="email">Email</FieldLabel>
                 <Input
                   id="email"
-                  type="email"
+                  type="text"
                   placeholder="rumman675@gmail.com"
+                  value={email}
+                  onChange={(e) => setEmail(e.target.value)}
                   required
                 />
               </Field>
@@ -47,14 +91,24 @@ export function LoginForm({
                     Forgot your password?
                   </a>
                 </div>
-                <Input id="password" type="password" required />
+                <Input 
+                id="password" 
+                type="password" 
+                value={password}
+                onChange={(e) => setPassword(e.target.value)}
+                 required />
               </Field>
+              {error && (
+                <p className="text-center text-sm text-destructive">{error}</p>
+              )}
               <Field>
-                <Button type="submit">Login</Button>
+                <Button type="submit" disabled={loading} >
+                  {loading ? "logging in..." :"login"}
+                  </Button>
               </Field>
 
               <FieldDescription className="text-center">
-                Don&apos;t have an account? <a href="#">Sign up</a>
+                Don&apos;t have an account? <Link href ="/signup">Sign up</Link>
               </FieldDescription>
             </FieldGroup>
           </form>

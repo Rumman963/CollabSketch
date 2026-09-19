@@ -186,6 +186,28 @@ app.get("/chats/:roomId" , authMiddleware, async (req,res)=>{
   
 })
 
+app.get("/room/:slug", authMiddleware, async (req, res) => {
+  const { slug } = req.params
+  if (typeof slug !== "string") {
+    return res.status(400).json({ message: "Invalid room slug" })
+  }
+
+  try {
+    const room = await prismaClient.room.findUnique({
+      where: { slug },
+    })
+
+    if (!room) {
+      return res.status(404).json({ message: "Room not found" })
+    }
+
+    res.json({ roomId: room.id })
+  } catch (e) {
+    console.log(e)
+    res.status(500).json({ message: "Something went wrong" })
+  }
+})
+
 app.listen(3003);
 
 
