@@ -57,53 +57,97 @@ users.push({
   userId,
   rooms:[],
   ws
+});
+
+ws.on("close" , ()=>{
+  const i = users.findIndex(u=> u.ws === ws)
+   if(i !== -1) users.splice(i,1);
 })
 
 
+
   ws.on("message", async function message(data) {
+  try{
 
     const parseData = JSON.parse(data as unknown as string);
 
+    const roomId = String(parseData.roomId);
+
     if(parseData.type === "join_room"){
+
       const user = users.find(x=> x.ws ===ws);
+
       user?.rooms.push(parseData.roomId);
+
     }
 
     if(parseData.type ==="leave_room"){
+
       const user = users.find(x=>x.ws === ws);
+
       if(!user){
+
         return;
+
       }
+
       //user will not recieve message from that specefic room he join earlier
-      user.rooms = user?.rooms.filter(x=> x === parseData.room)
+
+      user.rooms = user.rooms.filter(x=> x !== String(parseData.roomId))
+
     }
+
     
+
     if(parseData.type === "chat"){
+
       const roomId =parseData.roomId;
+
       const message = parseData.message;
 
       await prismaClient.chat.create({
+
         data:{
+
           roomId,
+
           message,
+
           userId
 
         }
+
       });
 
       users.forEach(user =>{
+
         if(user.rooms.includes(roomId)){
+
           user.ws.send(JSON.stringify({
+
             type:"chat",
+
             message:message,
+
             roomId
+
              
+
           }))
+
         }
+
       })
+
     }
 
-    console.log("Received message:", parseData);
-      ws.send("pong");
+
+  }catch(e){
+
+    console.log("bad messsage" , e)
+
+  } 
+
+
   });
 });

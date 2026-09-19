@@ -28,7 +28,7 @@ slug          String     @unique
 createdAt    DateTime    @default(now())
 adminId       String
 admin          User      @relation(fields:[adminId] , references:[id])
-chats          Chat[]
+chats         Chat[]
 
 }
 
@@ -40,6 +40,7 @@ roomId      Int
 userId     String
 room       Room      @relation(fields:[roomId] , references:[id])
 user       User      @relation(fields:[userId] , references:[id])
+
 
 
 }

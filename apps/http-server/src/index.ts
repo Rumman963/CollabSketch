@@ -5,8 +5,15 @@ import jwt from "jsonwebtoken"
 import { authMiddleware } from "./middleware.js";
 import {prismaClient} from "@repo/db/client"
 import bcrypt from "bcrypt";
+import cors from "cors";
 
 const app = express();
+
+app.use(cors({ 
+  origin: ["http://localhost:3002"
+
+   ]}));
+
 app.use(express.json());
 
 app.post("/signup" , async (req,res)=>{
@@ -158,7 +165,7 @@ app.post("/room" ,authMiddleware , async (req,res)=>{
 })
 
 
-app.get("/chats/:roomId" ,async (req,res)=>{
+app.get("/chats/:roomId" , authMiddleware, async (req,res)=>{
   const roomId =Number(req.params.roomId);
   const messages =await prismaClient.chat.findMany({
     where:{
