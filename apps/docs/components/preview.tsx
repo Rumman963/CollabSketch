@@ -32,8 +32,8 @@ const DEFAULT_WORDS = [
 ];
 
 const DEFAULT_COLLABORATORS: Collaborator[] = [
-  { name: "Priya", color: "#D4537E", top: 19, left: 39, motion: "drift1" },
-  { name: "Devon", color: "#1D9E75", top: 47, left: 68, motion: "drift2" },
+  { name: "Rumman", color: "#D4537E", top: 19, left: 39, motion: "drift1" },
+  { name: "Dev", color: "#1D9E75", top: 47, left: 68, motion: "drift2" },
   { name: "You joined", color: "#7F77DD", top: 72, left: 16, motion: "join", delay: 5.2 },
 ];
 
