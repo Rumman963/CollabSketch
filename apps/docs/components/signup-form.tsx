@@ -1,3 +1,8 @@
+"use client"
+import { useState } from "react";
+import { useRouter } from "next/navigation";
+import axios from "axios";
+import { HTTP_BACKEND } from "@/lib/config";
 import { cn } from "cn"
 import {Preview} from "@/components/preview"
 
@@ -16,11 +21,32 @@ export function SignupForm({
   className,
   ...props
 }: React.ComponentProps<"div">) {
+  
+  const router = useRouter();
+  const [name , setName] = useState("");
+  const [email, setEmail] = useState("");
+  const [password , setPassword] = useState("");
+  const [error, setError] = useState("");
+
+  async function handleSubmit(e:React.SubmitEvent<HTMLFormElement>){
+    e.preventDefault()
+    setError("")
+
+    try{
+      await axios.post(`${HTTP_BACKEND}/signup` , {name,email,password})
+      router.push("/login")
+    }catch(err:any){
+      setError(err.response?.data?.message || "something went wrong")
+
+    }
+
+  }
+
   return (
     <div className={cn("flex flex-col gap-6", className)} {...props}>
       <Card className="overflow-hidden p-0 bg-neutral-100">
         <CardContent className="grid p-0 md:grid-cols-2">
-          <form className="p-6 md:p-8">
+          <form className="p-6 md:p-8" onSubmit={handleSubmit}>
             <FieldGroup>
               <div className="flex flex-col items-center gap-2 text-center">
                 <h1 className="text-2xl font-bold">Create your account</h1>
@@ -33,8 +59,10 @@ export function SignupForm({
           <FieldLabel htmlFor="name">Name</FieldLabel>
               <Input
               id="name"
-              type="name"
+              type="text"
               placeholder="Rumman Khan"
+              value={name}
+              onChange={(e) => setName(e.target.value)}
               required
                 />
                 </Field>
@@ -42,18 +70,26 @@ export function SignupForm({
                 <FieldLabel htmlFor="email">Email</FieldLabel>
                 <Input
                   id="email"
-                  type="email"
+                  type="text"
+                  value={email}
+                  onChange={(e) => setEmail(e.target.value)}
                   placeholder="rumman454@email.com"
                   required
                 />
               </Field>
                   <Field>
                     <FieldLabel htmlFor="password">Password</FieldLabel>
-                    <Input id="password" type="password" required />
+                    <Input 
+                    id="password" 
+                    type="password" 
+                    value={password} 
+                    onChange={(e)=> setPassword(e.target.value)}
+                    required />
                   </Field>
                 <FieldDescription>
                   Must be at least 8 characters long.
                 </FieldDescription>
+                {error && <p className="text-center text-sm text-destructive">{error}</p>}
               <Field>
                 <Button type="submit">Create Account</Button>
               </Field>

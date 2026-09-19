@@ -1,9 +1,12 @@
+"use client"
 import { SignupForm } from "@/components/signup-form"
 import {Logo} from "@/components/ui/logo"
 import { FlickeringGrid } from "@/components/ui/flickering-grid"
 
 
 export default function SignupPage() {
+  
+
   return (
     <div className="relative flex min-h-svh flex-col items-center justify-center overflow-hidden bg-muted p-6 md:p-10">
       <FlickeringGrid 
