@@ -1,7 +1,7 @@
 "use client"
 import { Toolbar, type Tool } from "@/components/toolbar"
 import { useEffect, useRef, useState } from "react"
-import { Trash2 , Download } from "lucide-react"
+import { Check, Download, Lock, Trash2, UserPlus } from "lucide-react"
 import {Button} from "@/components/ui/button"
 import {WS_BACKEND , HTTP_BACKEND} from "@/lib/config"
 import axios from "axios"
@@ -211,6 +211,9 @@ export function Canvas({ roomId }: { roomId?: string }) {
   const redrawRef = useRef<() => void>(() => {})
   const isAdminRef = useRef(false)
   const [tool, setTool] = useState<Tool>("rect")
+  const [role, setRole] = useState<"unknown" | "admin" | "member">("unknown")
+  const [slug, setSlug] = useState("")
+  const [inviteState, setInviteState] = useState<"idle" | "copied" | "denied">("idle")
 
 
   function chooseTool(t: Tool) {
@@ -240,6 +243,26 @@ export function Canvas({ roomId }: { roomId?: string }) {
   link.download = `collabsketch-${roomId ?? "solo"}.png`
   link.href = out.toDataURL("image/png")
   link.click()
+}
+
+async function inviteMembers() {
+  // not the admin: show the message on the button
+  if (role === "member") {
+    setInviteState("denied")
+    setTimeout(() => setInviteState("idle"), 2500)
+    return
+  }
+
+  if (!slug) return
+  const link = `${window.location.origin}/join/${encodeURIComponent(slug)}`
+
+  try {
+    await navigator.clipboard.writeText(link)
+    setInviteState("copied")
+    setTimeout(() => setInviteState("idle"), 2000)
+  } catch {
+    window.prompt("Copy this link:", link)
+  }
 }
 
 
@@ -583,12 +606,15 @@ const activateTextBox = (mx: number, my: number) => {
 
 
     ws.onmessage = (event) => {
+       console.log("ws in:", event.data)
   try {
     const data = JSON.parse(event.data)
     if (String(data.roomId) !== String(roomId)) return
 
     if (data.type === "role") {
       isAdminRef.current = data.isAdmin
+      setRole(data.isAdmin ? "admin" : "member")
+      if (data.slug) setSlug(data.slug)
     }
 
     if (data.type === "chat") {
@@ -687,9 +713,33 @@ const activateTextBox = (mx: number, my: number) => {
 
   <Button onClick={savePng}>
     <Download className="size-4" />
-    Save
+    <span className="hidden xl:inline">Save</span>
   </Button>
+
+  {roomId && (
+  <Button
+    variant={inviteState === "denied" ? "destructive" : "default"}
+    disabled={role === "unknown"}
+    onClick={inviteMembers}
+  >
+    {inviteState === "copied" ? (
+      <Check className="size-3" />
+    ) : inviteState === "denied" ? (
+      <Lock className="size-3" />
+    ) : (
+      <UserPlus className="size-3" />
+    )}
+    {inviteState === "copied"
+      ? "Link copied"
+      : inviteState === "denied"
+        ? "You're not the admin"
+        : "Invite+"}
+  </Button>
+)}
+
 </div>
+    
+
       <canvas ref={canvasRef} className="block bg-white cursor-crosshair" />
     </>
   )

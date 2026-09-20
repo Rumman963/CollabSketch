@@ -88,7 +88,8 @@ ws.on("close" , ()=>{
     type: "role",
     roomId,
     isAdmin: room.adminId === userId,
-    slug: room.adminId === userId ? room.slug : null,
+    slug: room.slug,
+    
   }));
 }
 
