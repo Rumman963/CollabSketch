@@ -1,7 +1,7 @@
 "use client"
 import { Toolbar, type Tool } from "@/components/toolbar"
 import { useEffect, useRef, useState } from "react"
-import { Trash2 } from "lucide-react"
+import { Trash2 , Download } from "lucide-react"
 import {Button} from "@/components/ui/button"
 import {WS_BACKEND , HTTP_BACKEND} from "@/lib/config"
 import axios from "axios"
@@ -220,6 +220,27 @@ export function Canvas({ roomId }: { roomId?: string }) {
     canvasRef.current.style.cursor = t === "hand" ? "grab" : "crosshair"
   }      
   }
+
+  function savePng() {
+  const canvas = canvasRef.current
+  if (!canvas) return
+
+  // copy the drawing onto a white background (the canvas itself is see-through)
+  const out = document.createElement("canvas")
+  out.width = canvas.width
+  out.height = canvas.height
+  const c = out.getContext("2d")
+  if (!c) return
+  c.fillStyle = "white"
+  c.fillRect(0, 0, out.width, out.height)
+  c.drawImage(canvas, 0, 0)
+
+  // download it as a file
+  const link = document.createElement("a")
+  link.download = `collabsketch-${roomId ?? "solo"}.png`
+  link.href = out.toDataURL("image/png")
+  link.click()
+}
 
 
   useEffect(() => {
@@ -647,21 +668,28 @@ const activateTextBox = (mx: number, my: number) => {
 
 
     <Toolbar tool={tool} onChange={chooseTool} />
-    <Button
+    <div className="fixed right-4 top-4 z-10 flex items-center gap-2">
+  <Button
     variant="outline"
-    className="fixed right-4 top-4 z-10 bg-white shadow-lg"
+    className="bg-white"
     onClick={() => {
-    const msg = !roomId
-    ? "Clear the whole canvas?"
-    : isAdminRef.current
-      ? "Clear the canvas for everyone? This permanently deletes the room's drawing."
-      : "Clear your screen? Other people keep their drawings, and yours comes back when you refresh."
-  if (window.confirm(msg)) clearRef.current()
-}}   
->
-  <Trash2 className="size-4" />
-  Clear
-</Button>
+      const msg = !roomId
+        ? "Clear the whole canvas?"
+        : isAdminRef.current
+          ? "Clear the canvas for everyone? This permanently deletes the room's drawing."
+          : "Clear your screen? Other people keep their drawings, and yours comes back when you refresh."
+      if (window.confirm(msg)) clearRef.current()
+    }}
+  >
+    <Trash2 className="size-4" />
+    Clear
+  </Button>
+
+  <Button onClick={savePng}>
+    <Download className="size-4" />
+    Save
+  </Button>
+</div>
       <canvas ref={canvasRef} className="block bg-white cursor-crosshair" />
     </>
   )
