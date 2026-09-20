@@ -1,6 +1,6 @@
 import express from "express";
 import { JWT_SECRET , FRONTEND_URL } from "@repo/backend-common/config"
-import { UserSchema , SigninSchema , CreateRoomSchema} from "@repo/common"
+import { UserSchema , SigninSchema , CreateRoomSchema} from "@repo/common/configs"
 import jwt from "jsonwebtoken"
 import { authMiddleware } from "./middleware.js";
 import {prismaClient} from "@repo/db/client"
@@ -228,5 +228,3 @@ app.get("/health", (_req, res) => {
 app.listen(PORT , 
   ()=> console.log("http server listening on",
      PORT));
-
-

@@ -4,7 +4,7 @@ import { useRouter } from "next/navigation";
 import axios from "axios";
 import { HTTP_BACKEND } from "@/lib/config";
 import { cn } from "cn"
-import { UserSchema } from "@repo/common"
+import { UserSchema } from "@repo/common/configs"
 
 import { Button } from "@/components/ui/button"
 import { Card, CardContent } from "@/components/ui/card"

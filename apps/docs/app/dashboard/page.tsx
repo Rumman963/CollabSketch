@@ -10,7 +10,7 @@ import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { Card, CardContent } from "@/components/ui/card"
 import { FlickeringGrid } from "@/components/ui/flickering-grid"
-import { CreateRoomSchema } from "@repo/common"
+import { CreateRoomSchema } from "@repo/common/configs"
 
 // dotted paper background that follows the theme text color
 const dots = {

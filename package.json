@@ -3,7 +3,7 @@
   "private": true,
   "scripts": {
     "build": "turbo run build",
-    "dev": "powershell.exe -NoProfile -ExecutionPolicy Bypass -Command \"Get-NetTCPConnection | Where-Object { $_.LocalPort -in 3002,3003,8000 } | ForEach-Object { Stop-Process -Id $_.OwningProcess -Force -ErrorAction SilentlyContinue }; pnpm --parallel --filter ./apps/docs --filter ./apps/http-server --filter ./apps/ws-backend run dev\"",
+    "dev": "powershell.exe -NoProfile -ExecutionPolicy Bypass -Command \"Get-NetTCPConnection | Where-Object { $_.LocalPort -in 3002,3003,8000 } | ForEach-Object { Stop-Process -Id $_.OwningProcess -Force -ErrorAction SilentlyContinue }; pnpm --filter @repo/common --filter @repo/backend-common --filter @repo/db run build; if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }; pnpm --parallel --filter ./apps/docs --filter ./apps/http-server --filter ./apps/ws-backend run dev\"",
     "lint": "turbo run lint",
     "format": "prettier --write \"**/*.{ts,tsx,md}\"",
     "check-types": "turbo run check-types"

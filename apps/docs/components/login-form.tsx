@@ -4,7 +4,7 @@ import { useRouter } from "next/navigation";
 import axios from "axios";
 import { HTTP_BACKEND } from "@/lib/config";
 import { cn } from "cn"
-import { SigninSchema } from "@repo/common"
+import { SigninSchema } from "@repo/common/configs"
 import Link from "next/link";
 
 import { Button } from "@/components/ui/button"
