@@ -3,7 +3,8 @@ import { Toolbar, type Tool } from "@/components/toolbar"
 import { useEffect, useRef, useState } from "react"
 import { Trash2 } from "lucide-react"
 import {Button} from "@/components/ui/button"
-import {WS_BACKEND} from "@/lib/config"
+import {WS_BACKEND , HTTP_BACKEND} from "@/lib/config"
+import axios from "axios"
 
 
 type Shape =
@@ -208,6 +209,7 @@ export function Canvas({ roomId }: { roomId?: string }) {
   const offsetRef = useRef({ x: 0, y: 0 })
   const clearRef = useRef<() => void>(() => {})
   const wsRef = useRef<WebSocket | null>(null)
+  const redrawRef = useRef<() => void>(() => {})
   const [tool, setTool] = useState<Tool>("rect")
 
 
@@ -243,6 +245,8 @@ export function Canvas({ roomId }: { roomId?: string }) {
       if (preview) drawShape(ctx, preview)
          ctx.restore()   
     }
+
+    redrawRef.current = () => redraw()
 
    if (!roomId) {
   try {
@@ -547,7 +551,24 @@ const activateTextBox = (mx: number, my: number) => {
       ws.send(JSON.stringify({ type: "join_room", roomId }))
     }
 
-    ws.onmessage = (event)  => console.log("ws message")
+    ws.onmessage = (event) => {
+
+      try{
+        const data = JSON.parse(event.data)
+
+        if (data.type === "chat" && String(data.roomId) === String(roomId)){
+          const shape = JSON.parse(data.message)
+           shapesRef.current.push(shape)
+           redrawRef.current()
+
+        }
+      }catch(e){
+
+        console.log("could not read ws message", e)
+
+      }
+
+    }    
     ws.onerror = (err) => console.log("ws error:" , err)
     ws.onclose = () =>console.log("ws closed")
 
@@ -558,6 +579,43 @@ const activateTextBox = (mx: number, my: number) => {
     }
 
   },[roomId])
+
+  useEffect(() => {
+  if (!roomId) return
+
+  let cancelled = false
+
+  async function loadHistory() {
+    try {
+      const token = localStorage.getItem("token")
+      const res = await axios.get(`${HTTP_BACKEND}/chats/${roomId}`, {
+        headers: { Authorization: token ?? "" },
+      })
+      if (cancelled) return
+
+      const history: Shape[] = []
+      res.data.messages.forEach((m: { message: string }) => {
+        try {
+          history.push(JSON.parse(m.message))
+        } catch {
+          // skip rows that aren't shapes (like the old test messages)
+        }
+      })
+
+      // put old shapes first, keep anything that arrived live in the meantime
+      shapesRef.current = [...history, ...shapesRef.current]
+      redrawRef.current()
+    } catch (e) {
+      console.log("could not load history", e)
+    }
+  }
+
+  loadHistory()
+
+  return () => {
+    cancelled = true
+  }
+}, [roomId])
 
 
   return (

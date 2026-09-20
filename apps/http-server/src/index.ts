@@ -167,22 +167,33 @@ app.post("/room" ,authMiddleware , async (req,res)=>{
 
 app.get("/chats/:roomId" , authMiddleware, async (req,res)=>{
   const roomId =Number(req.params.roomId);
+  if (Number.isNaN(roomId)) {
+    return res.status(400).json({ message: "Invalid room id" })
+  }
+try{
+
+
   const messages =await prismaClient.chat.findMany({
     where:{
-      roomId:roomId
+      roomId
     },
 
     orderBy:{
-      id:"desc"
+      id:"asc"
     },
 
-    take:50
+    take:1000,
 
   })
 
   res.json({
     messages
   })
+
+}catch(e){
+    console.log(e)
+    res.status(500).json({ message: "Something went wrong" })
+}
   
 })
 
