@@ -73,14 +73,23 @@ ws.on("close" , ()=>{
 
     const roomId = String(parseData.roomId);
 
-    if(parseData.type === "join_room"){
+  if (parseData.type === "join_room") {
+  const room = await prismaClient.room.findUnique({
+    where: { id: Number(roomId) },
+  });
+  if (!room) return;
 
-      const user = users.find(x=> x.ws ===ws);
+  const user = users.find(x => x.ws === ws);
+  if (user && !user.rooms.includes(roomId)) {
+    user.rooms.push(roomId);
+  }
 
-      user?.rooms.push(parseData.roomId);
-      console.log("user joined room", roomId, "rooms:", user?.rooms);
-
-    }
+  ws.send(JSON.stringify({
+    type: "role",
+    roomId,
+    isAdmin: room.adminId === userId,
+  }));
+}
 
     if(parseData.type ==="leave_room"){
 
@@ -92,8 +101,6 @@ ws.on("close" , ()=>{
 
       }
 
-      //user will not recieve message from that specefic room he join earlier
-
       user.rooms = user.rooms.filter(x=> x !== String(parseData.roomId))
 
     }
@@ -101,19 +108,6 @@ ws.on("close" , ()=>{
     
 
     if(parseData.type === "chat"){
-
-      const message = parseData.message;
-
-      await prismaClient.chat.create({
-
-        data:{
-          roomId: Number(roomId),
-          message,
-          userId
-
-        }
-
-      });
 
       users.forEach(user =>{
 
@@ -123,7 +117,7 @@ ws.on("close" , ()=>{
 
             type:"chat",
 
-            message:message,
+            message:parseData.message,
 
             roomId
 
@@ -131,11 +125,52 @@ ws.on("close" , ()=>{
 
           }))
 
+
+
         }
 
       })
 
+    await prismaClient.chat.create({
+    data: { roomId: Number(roomId), message: parseData.message, userId },
+     });
+
     }
+
+  if (parseData.type === "erase") {
+
+
+  users.forEach(u => {
+    if (u.ws !== ws && u.rooms.includes(roomId)) {
+      u.ws.send(JSON.stringify({ type: "erase", message: parseData.message, roomId }));
+    }
+  });
+
+   await prismaClient.chat.deleteMany({
+    where: { roomId: Number(roomId), message: parseData.message },
+  });
+
+}
+
+if (parseData.type === "clear") {
+  const user = users.find(x => x.ws === ws);
+  if (!user?.rooms.includes(roomId)) return;
+
+  const room = await prismaClient.room.findUnique({
+    where: { id: Number(roomId) },
+  });
+
+
+  if (!room || room.adminId !== userId) return; // only the creator may clear for everyone
+
+  await prismaClient.chat.deleteMany({ where: { roomId: Number(roomId) } });
+
+  users.forEach(u => {
+    if (u.ws !== ws && u.rooms.includes(roomId)) {
+      u.ws.send(JSON.stringify({ type: "clear", roomId }));
+    }
+  });
+}
 
 
   }catch(e){

@@ -80,16 +80,15 @@ if (s.type === "arrow") {
 
 
   ctx.beginPath()
-  // the main line
+  
   ctx.moveTo(s.x1, s.y1)
   ctx.lineTo(s.x2, s.y2)
-  // first side of the arrowhead
   ctx.moveTo(s.x2, s.y2)
   ctx.lineTo(
     s.x2 - head * Math.cos(angle - Math.PI / 6),
     s.y2 - head * Math.sin(angle - Math.PI / 6)
   )
-  // second side of the arrowhead
+
   ctx.moveTo(s.x2, s.y2)
   ctx.lineTo(
     s.x2 - head * Math.cos(angle + Math.PI / 6),
@@ -130,7 +129,7 @@ if (s.type === "text") {
 }
 }
 
-// how far the point (px, py) is from the line segment (x1,y1) to (x2,y2)
+
 function distToSegment(
   px: number, py: number,
   x1: number, y1: number, x2: number, y2: number
@@ -139,13 +138,13 @@ function distToSegment(
   const dy = y2 - y1
   const lenSq = dx * dx + dy * dy
   let t = lenSq === 0 ? 0 : ((px - x1) * dx + (py - y1) * dy) / lenSq
-  t = Math.max(0, Math.min(1, t)) // keep the closest point on the segment
+  t = Math.max(0, Math.min(1, t)) 
   return Math.hypot(px - (x1 + t * dx), py - (y1 + t * dy))
 }
 
-// is the point (x, y) touching this shape's outline?
+
 function isHit(s: Shape, x: number, y: number): boolean {
-  const tol = 8 // how close (in pixels) counts as touching
+  const tol = 8 
 
   if (s.type === "line" || s.type === "arrow") {
     return distToSegment(x, y, s.x1, s.y1, s.x2, s.y2) < tol
@@ -190,7 +189,7 @@ function isHit(s: Shape, x: number, y: number): boolean {
   }
 
   if (s.type === "text") {
-  const w = s.text.length * 11 // rough width of 20px text
+  const w = s.text.length * 11 
   return x > s.x && x < s.x + w && y > s.y && y < s.y + 24
 }
 
@@ -210,6 +209,7 @@ export function Canvas({ roomId }: { roomId?: string }) {
   const clearRef = useRef<() => void>(() => {})
   const wsRef = useRef<WebSocket | null>(null)
   const redrawRef = useRef<() => void>(() => {})
+  const isAdminRef = useRef(false)
   const [tool, setTool] = useState<Tool>("rect")
 
 
@@ -276,26 +276,37 @@ const sendShape = (shape: Shape) => {
   )
 }
 
+const sendToServer = (data: object) => {
+  const ws = wsRef.current
+  if (!roomId || !ws || ws.readyState !== WebSocket.OPEN) return
+  ws.send(JSON.stringify({ roomId, ...data }))
+}
+
 let erasing = false
 
 const eraseAt = (x: number, y: number) => {
-  const before = shapesRef.current.length
-  shapesRef.current = shapesRef.current.filter((s) => !isHit(s, x, y))
-  if (shapesRef.current.length !== before) {
-    save()
-    redraw()
-  }
-}
+  const removed = shapesRef.current.filter((s) => isHit(s, x, y))
+  if (removed.length === 0) return
 
-clearRef.current = () => {
-  shapesRef.current = []
+  shapesRef.current = shapesRef.current.filter((s) => !isHit(s, x, y))
+  removed.forEach((s) =>
+    sendToServer({ type: "erase", message: JSON.stringify(s) })
+  )
   save()
   redraw()
 }
 
-// mouse down: create the box at the click point, with no size yet
+
+clearRef.current = () => {
+  shapesRef.current = []
+  save()
+  if (isAdminRef.current) sendToServer({ type: "clear" })
+  redraw()
+}
+
+
 const startTextBox = (x: number, y: number) => {
-  // finish any text box that's still open
+  
   document
     .querySelectorAll(".canvas-text-input")
     .forEach((el) => (el as HTMLElement).blur())
@@ -319,7 +330,7 @@ const startTextBox = (x: number, y: number) => {
     resize: "none",
     overflow: "hidden",
     zIndex: "20",
-    pointerEvents: "none", // so the canvas keeps getting mouse events while dragging
+    pointerEvents: "none", 
   })
   document.body.appendChild(box)
 
@@ -329,7 +340,7 @@ const startTextBox = (x: number, y: number) => {
   sizingText = true
 }
 
-// mouse move: stretch the box to follow the mouse
+
 const sizeTextBox = (mx: number, my: number) => {
   if (!textBox) return
   textBox.style.left = `${Math.min(textStartX, mx)}px`
@@ -338,7 +349,7 @@ const sizeTextBox = (mx: number, my: number) => {
   textBox.style.height = `${Math.abs(my - textStartY)}px`
 }
 
-// mouse up: lock in the size and let the user type
+
 const activateTextBox = (mx: number, my: number) => {
   const box = textBox
   if (!box) return
@@ -349,7 +360,7 @@ const activateTextBox = (mx: number, my: number) => {
   const y = Math.min(textStartY, my)
   let w = Math.abs(mx - textStartX)
   let h = Math.abs(my - textStartY)
-  if (w < 40) w = 200 // just a click: use a default size
+  if (w < 40) w = 200 
   if (h < 30) h = 30
 
   box.style.left = `${x}px`
@@ -381,7 +392,7 @@ const activateTextBox = (mx: number, my: number) => {
     box.remove()
   }
 
-  // grow the box if the text gets longer than it
+  
   box.addEventListener("input", () => {
     box.style.height = "auto"
     box.style.height = `${Math.max(h, box.scrollHeight)}px`
@@ -536,10 +547,9 @@ const activateTextBox = (mx: number, my: number) => {
   }, [roomId])
 
   useEffect(()=>{
-    if(!roomId) return //solo mode:no server
+    if(!roomId) return 
     const token = localStorage.getItem("token")
     if(!token){
-      console.log("no token , please log in")
       return
     }
 
@@ -547,28 +557,42 @@ const activateTextBox = (mx: number, my: number) => {
     wsRef.current=ws
    
     ws.onopen = () => { 
-      console.log("ws connected")
       ws.send(JSON.stringify({ type: "join_room", roomId }))
     }
 
+
     ws.onmessage = (event) => {
+  try {
+    const data = JSON.parse(event.data)
+    if (String(data.roomId) !== String(roomId)) return
 
-      try{
-        const data = JSON.parse(event.data)
+    if (data.type === "role") {
+      isAdminRef.current = data.isAdmin
+    }
 
-        if (data.type === "chat" && String(data.roomId) === String(roomId)){
-          const shape = JSON.parse(data.message)
-           shapesRef.current.push(shape)
-           redrawRef.current()
+    if (data.type === "chat") {
+      shapesRef.current.push(JSON.parse(data.message))
+      redrawRef.current()
+    }
 
-        }
-      }catch(e){
+    if (data.type === "erase") {
+      shapesRef.current = shapesRef.current.filter(
+        (s) => JSON.stringify(s) !== data.message
+      )
+      redrawRef.current()
+    }
 
-        console.log("could not read ws message", e)
+    if (data.type === "clear") {
+      shapesRef.current = []
+      redrawRef.current()
+    }
+  } catch (e) {
+    console.log("could not read ws message", e)
+  }
+}
 
-      }
 
-    }    
+
     ws.onerror = (err) => console.log("ws error:" , err)
     ws.onclose = () =>console.log("ws closed")
 
@@ -627,8 +651,13 @@ const activateTextBox = (mx: number, my: number) => {
     variant="outline"
     className="fixed right-4 top-4 z-10 bg-white shadow-lg"
     onClick={() => {
-    if (window.confirm("Clear the whole canvas?")) clearRef.current()
-  }}
+    const msg = !roomId
+    ? "Clear the whole canvas?"
+    : isAdminRef.current
+      ? "Clear the canvas for everyone? This permanently deletes the room's drawing."
+      : "Clear your screen? Other people keep their drawings, and yours comes back when you refresh."
+  if (window.confirm(msg)) clearRef.current()
+}}   
 >
   <Trash2 className="size-4" />
   Clear
