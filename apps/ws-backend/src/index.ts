@@ -48,8 +48,8 @@ const token = queryParams.get('token') || ""
 const userId = checkUser(token);
 
 if(userId == null){
-  ws.close();
-  return null
+  ws.close(4001, "invalid token");
+  return;
 }
   
  

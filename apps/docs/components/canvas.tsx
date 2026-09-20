@@ -5,6 +5,7 @@ import { Check, Download, Trash2, UserPlus } from "lucide-react"
 import {Button} from "@/components/ui/button"
 import {WS_BACKEND , HTTP_BACKEND} from "@/lib/config"
 import axios from "axios"
+import { useRouter } from "next/navigation"
 
 
 type Shape =
@@ -214,6 +215,13 @@ export function Canvas({ roomId }: { roomId?: string }) {
   const [role, setRole] = useState<"unknown" | "admin" | "member">("unknown")
   const [slug, setSlug] = useState("")
   const [copied, setCopied] = useState(false)
+  const router = useRouter()
+
+function sessionExpired() {
+  localStorage.removeItem("token")
+  localStorage.setItem("redirectAfterLogin", window.location.pathname)
+  router.push("/login")
+}
   
 
 
@@ -591,6 +599,7 @@ const activateTextBox = (mx: number, my: number) => {
     if(!roomId) return 
     const token = localStorage.getItem("token")
     if(!token){
+      sessionExpired()
       return
     }
 
@@ -638,7 +647,12 @@ const activateTextBox = (mx: number, my: number) => {
 
 
     ws.onerror = (err) => console.log("ws error:" , err)
-    ws.onclose = () =>console.log("ws closed")
+    ws.onclose = (event) => {
+
+   console.log("ws closed", event.code)
+  if (event.code === 4001) sessionExpired()
+  }
+      
 
 
     return () => {
@@ -673,7 +687,12 @@ const activateTextBox = (mx: number, my: number) => {
       // put old shapes first, keep anything that arrived live in the meantime
       shapesRef.current = [...history, ...shapesRef.current]
       redrawRef.current()
-    } catch (e) {
+    } catch (e:any) {
+       const status = e.response?.status
+       if (status === 401 || status === 403) {
+       sessionExpired()
+       return
+  }
       console.log("could not load history", e)
     }
   }

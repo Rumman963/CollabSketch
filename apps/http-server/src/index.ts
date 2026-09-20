@@ -103,8 +103,10 @@ app.post("/signin" , async(req,res)=>{
 } 
 
     const token = jwt.sign({
-    userId: existingUser?.id
-} , JWT_SECRET)
+    userId: existingUser.id} , 
+    JWT_SECRET,
+   { expiresIn: "1d" }
+)
 
 
     res.status(200).json({
