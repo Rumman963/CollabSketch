@@ -221,6 +221,11 @@ app.get("/room/:slug", authMiddleware, async (req, res) => {
   }
 })
 
+//server is alive checkpoint
+app.get("/health", (_req, res) => {
+  res.send("ok")
+})
+
 app.listen(3003);
 
 

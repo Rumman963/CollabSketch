@@ -588,11 +588,19 @@ const activateTextBox = (mx: number, my: number) => {
     canvas.addEventListener("mousemove", onMouseMove)
     canvas.addEventListener("mouseup", onMouseUp)
 
+  const onResize = () => {
+  canvas.width = window.innerWidth
+  canvas.height = window.innerHeight
+  redraw() 
+}
+  window.addEventListener("resize", onResize)
+
 
     return () => {
       canvas.removeEventListener("mousedown", onMouseDown)
       canvas.removeEventListener("mousemove", onMouseMove)
       canvas.removeEventListener("mouseup", onMouseUp)
+      window.removeEventListener("resize", onResize)
     }
   }, [roomId])
 
@@ -751,7 +759,7 @@ const activateTextBox = (mx: number, my: number) => {
   
 </div>
     
-<canvas ref={canvasRef} className="block bg-white cursor-crosshair" />
+<canvas ref={canvasRef} className="fixed inset-0 block cursor-crosshair bg-white" />
     </div>
   )
 }

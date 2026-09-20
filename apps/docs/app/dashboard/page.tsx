@@ -3,13 +3,14 @@
 import { useEffect, useState } from "react"
 import { useRouter } from "next/navigation"
 import axios from "axios"
-import { ArrowLeft, LogOut, PenTool, Users } from "lucide-react"
+import { ArrowLeft,Loader2, LogOut, PenTool, Users } from "lucide-react"
 import { HTTP_BACKEND } from "@/lib/config"
 import Logo from "@/components/ui/logo"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { Card, CardContent } from "@/components/ui/card"
 import { FlickeringGrid } from "@/components/ui/flickering-grid"
+import { CreateRoomSchema } from "@repo/common"
 
 // dotted paper background that follows the theme text color
 const dots = {
@@ -24,6 +25,8 @@ export default function Dashboard() {
   const [roomName, setRoomName] = useState("")
   const [joinName, setJoinName] = useState("")
   const [error, setError] = useState("")
+  const [creating, setCreating] = useState(false)
+  const [joining, setJoining] = useState(false)
 
   // no token: send the user back to login
   useEffect(() => {
@@ -52,28 +55,43 @@ export default function Dashboard() {
 
   async function createRoom() {
     setError("")
+
+    const result = CreateRoomSchema.safeParse({ name: roomName })
+  if (!result.success) {
+    setError(result.error.issues[0]?.message ?? "Invalid room name")
+    return
+  }
+   setCreating(true)
     try {
       const res = await axios.post(
         `${HTTP_BACKEND}/room`,
-        { name: roomName },
+        { name: result.data.name },
         { headers: authHeaders() }
       )
       router.push(`/canvas/${res.data.roomId}`)
     } catch (err) {
       handleError(err)
+      setCreating(false)
     }
   }
 
   async function joinRoom() {
     setError("")
+    const name = joinName.trim()
+    if (!name) {
+    setError("Enter the name of the room you want to join")
+    return
+  }
+
     try {
       const res = await axios.get(
-        `${HTTP_BACKEND}/room/${encodeURIComponent(joinName)}`,
+        `${HTTP_BACKEND}/room/${encodeURIComponent(name)}`,
         { headers: authHeaders() }
       )
       router.push(`/canvas/${res.data.roomId}`)
     } catch (err) {
       handleError(err)
+      setJoining(false)
     }
   }
 
@@ -176,9 +194,12 @@ export default function Dashboard() {
                     value={roomName}
                     onChange={(e) => setRoomName(e.target.value)}
                   />
-                  <Button className="w-full" onClick={createRoom}>
-                    Create room
-                  </Button>
+
+                <Button className="w-full" onClick={createRoom} disabled={creating || joining}>
+                 {creating && <Loader2 className="size-4 animate-spin" />}
+                 {creating ? "Creating room..." : "Create room"}
+                 </Button> 
+                 
                 </div>
 
                 <div className="flex items-center gap-3 text-sm text-muted-foreground">
@@ -196,13 +217,12 @@ export default function Dashboard() {
                     value={joinName}
                     onChange={(e) => setJoinName(e.target.value)}
                   />
-                  <Button
-                    variant="outline"
-                    className="w-full"
-                    onClick={joinRoom}
-                  >
-                    Join room
-                  </Button>
+
+
+                <Button variant="outline" className="w-full" onClick={joinRoom} disabled={creating || joining}>
+                {joining && <Loader2 className="size-4 animate-spin" />}
+                {joining ? "Joining room..." : "Join room"}
+                 </Button>
                 </div>
 
                 {error && <p className="text-sm text-destructive">{error}</p>}
