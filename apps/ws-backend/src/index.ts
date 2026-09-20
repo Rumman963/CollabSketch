@@ -78,6 +78,7 @@ ws.on("close" , ()=>{
       const user = users.find(x=> x.ws ===ws);
 
       user?.rooms.push(parseData.roomId);
+      console.log("user joined room", roomId, "rooms:", user?.rooms);
 
     }
 
@@ -101,18 +102,13 @@ ws.on("close" , ()=>{
 
     if(parseData.type === "chat"){
 
-      const roomId =parseData.roomId;
-
       const message = parseData.message;
 
       await prismaClient.chat.create({
 
         data:{
-
-          roomId,
-
+          roomId: Number(roomId),
           message,
-
           userId
 
         }
@@ -121,7 +117,7 @@ ws.on("close" , ()=>{
 
       users.forEach(user =>{
 
-        if(user.rooms.includes(roomId)){
+        if(user.ws !== ws && user.rooms.includes(roomId)){
 
           user.ws.send(JSON.stringify({
 

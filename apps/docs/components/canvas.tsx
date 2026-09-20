@@ -1,9 +1,9 @@
 "use client"
 import { Toolbar, type Tool } from "@/components/toolbar"
 import { useEffect, useRef, useState } from "react"
-import { useParams } from "next/navigation"
-import { Button } from "@/components/ui/button"
-
+import { Trash2 } from "lucide-react"
+import {Button} from "@/components/ui/button"
+import {WS_BACKEND} from "@/lib/config"
 
 
 type Shape =
@@ -206,6 +206,8 @@ export function Canvas({ roomId }: { roomId?: string }) {
   const shapesRef = useRef<Shape[]>([])
   const toolRef = useRef<Tool>("rect")
   const offsetRef = useRef({ x: 0, y: 0 })
+  const clearRef = useRef<() => void>(() => {})
+  const wsRef = useRef<WebSocket | null>(null)
   const [tool, setTool] = useState<Tool>("rect")
 
 
@@ -258,6 +260,18 @@ export function Canvas({ roomId }: { roomId?: string }) {
   }
 }
 
+const sendShape = (shape: Shape) => {
+  const ws = wsRef.current
+  if (!roomId || !ws || ws.readyState !== WebSocket.OPEN) return
+  ws.send(
+    JSON.stringify({
+      type: "chat",
+      roomId,
+      message: JSON.stringify(shape),
+    })
+  )
+}
+
 let erasing = false
 
 const eraseAt = (x: number, y: number) => {
@@ -267,6 +281,12 @@ const eraseAt = (x: number, y: number) => {
     save()
     redraw()
   }
+}
+
+clearRef.current = () => {
+  shapesRef.current = []
+  save()
+  redraw()
 }
 
 // mouse down: create the box at the click point, with no size yet
@@ -341,15 +361,17 @@ const activateTextBox = (mx: number, my: number) => {
     done = true
     const text = box.value.trim()
     if (text) {
-      shapesRef.current.push({
+       const shape: Shape = {
         type: "text",
         x: x - offsetRef.current.x,
         y: y - offsetRef.current.y,
         w,
         h: Math.max(h, box.scrollHeight),
         text,
-      })
+      }
+      shapesRef.current.push(shape)
       save()
+      sendShape(shape)
       redraw()
     }
     box.remove()
@@ -471,20 +493,28 @@ const activateTextBox = (mx: number, my: number) => {
         erasing = false 
       if (!drawing) return
       drawing = false
-
-
-       if (toolRef.current === "pencil") {
-    shapesRef.current.push({ type: "pencil", points: pencilPoints })
-    save()
+    
+    if (Math.abs(worldX(e) - startX) < 3 && Math.abs(worldY(e) - startY) < 3) {
     redraw()
     return
   }
 
 
-      shapesRef.current.push(
-        makeShape(toolRef.current, startX, startY, worldX(e), worldY(e))
-      )
+    if (toolRef.current === "pencil") {
+    const shape: Shape = { type: "pencil", points: pencilPoints }
+    shapesRef.current.push(shape)
+  
+    save()
+    sendShape(shape)
+    redraw()
+    return
+  }
+
+
+      const shape = makeShape(toolRef.current, startX, startY, worldX(e), worldY(e))
+      shapesRef.current.push(shape)
       save()
+      sendShape(shape)
       redraw()
     }
 
@@ -501,12 +531,50 @@ const activateTextBox = (mx: number, my: number) => {
     }
   }, [roomId])
 
+  useEffect(()=>{
+    if(!roomId) return //solo mode:no server
+    const token = localStorage.getItem("token")
+    if(!token){
+      console.log("no token , please log in")
+      return
+    }
+
+    const ws = new WebSocket(`${WS_BACKEND}?token=${token}`)
+    wsRef.current=ws
+   
+    ws.onopen = () => { 
+      console.log("ws connected")
+      ws.send(JSON.stringify({ type: "join_room", roomId }))
+    }
+
+    ws.onmessage = (event)  => console.log("ws message")
+    ws.onerror = (err) => console.log("ws error:" , err)
+    ws.onclose = () =>console.log("ws closed")
+
+
+    return () => {
+      ws.close()
+      wsRef.current = null
+    }
+
+  },[roomId])
+
 
   return (
     <>
 
 
     <Toolbar tool={tool} onChange={chooseTool} />
+    <Button
+    variant="outline"
+    className="fixed right-4 top-4 z-10 bg-white shadow-lg"
+    onClick={() => {
+    if (window.confirm("Clear the whole canvas?")) clearRef.current()
+  }}
+>
+  <Trash2 className="size-4" />
+  Clear
+</Button>
       <canvas ref={canvasRef} className="block bg-white cursor-crosshair" />
     </>
   )

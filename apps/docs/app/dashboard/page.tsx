@@ -14,6 +14,7 @@ export default function Dashboard() {
   const [view, setView] = useState<"choose" | "collab">("choose")
   const [roomName, setRoomName] = useState("")
   const [error, setError] = useState("")
+  const [joinName, setJoinName] = useState("")
    
 
   useEffect(() => {
@@ -37,15 +38,41 @@ export default function Dashboard() {
     }
   }
 
+
+  async function joinRoom(){
+    setError("")
+    try{
+      const token = localStorage.getItem("token")
+      const res = await axios.get(
+        `${HTTP_BACKEND}/room/${encodeURIComponent(joinName)}`,
+        {headers:
+          
+          {
+            Authorization:token ?? ""
+          }
+
+        }
+      )
+        router.push(`/canvas/${res.data.roomId}`)
+      
+    }catch(err:any){
+      setError(err.response?.data?.message || "Something went wrong")
+    }
+  }
+
   // screen 2: room options for Collab Mode
+  
   if (view === "collab") {
-    return (
-      <div className="flex min-h-svh items-center justify-center bg-blue-500 p-6">
-        <div className="w-full max-w-sm space-y-4">
-          <Button variant="ghost" onClick={() => setView("choose")}>
-            <ArrowLeft /> Back
-          </Button>
-          <h1 className="text-2xl font-bold">Collab Mode</h1>
+  return (
+    <div className="flex min-h-svh items-center justify-center bg-muted p-6">
+      <div className="w-full max-w-sm space-y-4">
+        <Button variant="ghost" onClick={() => setView("choose")}>
+          <ArrowLeft /> Back
+        </Button>
+        <h1 className="text-2xl font-bold">Collab Mode</h1>
+
+        <div className="space-y-2">
+          <h2 className="font-semibold">Create a room</h2>
           <Input
             placeholder="Room name (6-20 characters)"
             value={roomName}
@@ -54,11 +81,31 @@ export default function Dashboard() {
           <Button className="w-full" onClick={createRoom}>
             Create room
           </Button>
-          {error && <p className="text-sm text-destructive">{error}</p>}
         </div>
+
+        <div className="flex items-center gap-3 text-sm text-muted-foreground">
+          <div className="h-px flex-1 bg-border" />
+          or
+          <div className="h-px flex-1 bg-border" />
+        </div>
+
+        <div className="space-y-2">
+          <h2 className="font-semibold">Join a room</h2>
+          <Input
+            placeholder="Room name"
+            value={joinName}
+            onChange={(e) => setJoinName(e.target.value)}
+          />
+          <Button variant="outline" className="w-full" onClick={joinRoom}>
+            Join room
+          </Button>
+        </div>
+
+        {error && <p className="text-sm text-destructive">{error}</p>}
       </div>
-    )
-  }
+    </div>
+  )
+}
 
   // screen 1: choose a mode
   return (
