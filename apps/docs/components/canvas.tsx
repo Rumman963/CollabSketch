@@ -1,7 +1,7 @@
 "use client"
 import { Toolbar, type Tool } from "@/components/toolbar"
 import { useEffect, useRef, useState } from "react"
-import { Check, Download, Lock, Trash2, UserPlus } from "lucide-react"
+import { Check, Download, Trash2, UserPlus } from "lucide-react"
 import {Button} from "@/components/ui/button"
 import {WS_BACKEND , HTTP_BACKEND} from "@/lib/config"
 import axios from "axios"
@@ -213,7 +213,8 @@ export function Canvas({ roomId }: { roomId?: string }) {
   const [tool, setTool] = useState<Tool>("rect")
   const [role, setRole] = useState<"unknown" | "admin" | "member">("unknown")
   const [slug, setSlug] = useState("")
-  const [inviteState, setInviteState] = useState<"idle" | "copied" | "denied">("idle")
+  const [copied, setCopied] = useState(false)
+  
 
 
   function chooseTool(t: Tool) {
@@ -247,19 +248,15 @@ export function Canvas({ roomId }: { roomId?: string }) {
 
 async function inviteMembers() {
   // not the admin: show the message on the button
-  if (role === "member") {
-    setInviteState("denied")
-    setTimeout(() => setInviteState("idle"), 2500)
-    return
-  }
+  
 
   if (!slug) return
   const link = `${window.location.origin}/join/${encodeURIComponent(slug)}`
 
   try {
     await navigator.clipboard.writeText(link)
-    setInviteState("copied")
-    setTimeout(() => setInviteState("idle"), 2000)
+     setCopied(true)
+    setTimeout(() =>  setCopied(false), 2000)
   } catch {
     window.prompt("Copy this link:", link)
   }
@@ -716,27 +713,13 @@ const activateTextBox = (mx: number, my: number) => {
     <span className="hidden xl:inline">Save</span>
   </Button>
 
-  {roomId && (
-  <Button
-    variant={inviteState === "denied" ? "destructive" : "default"}
-    disabled={role === "unknown"}
-    onClick={inviteMembers}
-  >
-    {inviteState === "copied" ? (
-      <Check className="size-3" />
-    ) : inviteState === "denied" ? (
-      <Lock className="size-3" />
-    ) : (
-      <UserPlus className="size-3" />
-    )}
-    {inviteState === "copied"
-      ? "Link copied"
-      : inviteState === "denied"
-        ? "You're not the admin"
-        : "Invite+"}
+{roomId && role === "admin" && (
+  <Button onClick={inviteMembers}>
+    {copied ? <Check className="size-4" /> : <UserPlus className="size-4" />}
+    {copied ? "Link copied" : "Invite+"}
   </Button>
 )}
-
+  
 </div>
     
 

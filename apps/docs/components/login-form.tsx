@@ -48,7 +48,9 @@ export function LoginForm({
     })
 
      localStorage.setItem("token", res.data.token)
-     router.push("/dashboard")
+     const next = localStorage.getItem("redirectAfterLogin")
+     localStorage.removeItem("redirectAfterLogin")
+     router.push(next && next.startsWith("/join/") ? next : "/dashboard")
   }
   catch(err:any){
     setError(err.response?.data?.message || "Something went wrong")
