@@ -1,5 +1,5 @@
 import express from "express";
-import { JWT_SECRET } from "@repo/backend-common/config"
+import { JWT_SECRET , FRONTEND_URL } from "@repo/backend-common/config"
 import { UserSchema , SigninSchema , CreateRoomSchema} from "@repo/common"
 import jwt from "jsonwebtoken"
 import { authMiddleware } from "./middleware.js";
@@ -10,9 +10,7 @@ import cors from "cors";
 const app = express();
 
 app.use(cors({ 
-  origin: ["http://localhost:3002"
-
-   ]}));
+  origin:FRONTEND_URL}));
 
 app.use(express.json());
 
@@ -26,7 +24,7 @@ app.post("/signup" , async (req,res)=>{
     return;
   }
 
-  const { email, password, name } = parseSchema.data;
+  const { password} = parseSchema.data;
 
   try{
     const existingUser = await prismaClient.user.findFirst({
@@ -73,7 +71,7 @@ app.post("/signin" , async(req,res)=>{
     });
   }
 
-  const {email , password} = parseSchema.data
+  
 
     try{ 
     const existingUser = await prismaClient.user.findUnique({
