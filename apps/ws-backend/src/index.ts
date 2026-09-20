@@ -3,7 +3,9 @@ import jwt from "jsonwebtoken";
 import {JWT_SECRET} from "@repo/backend-common/config"
 import {prismaClient}  from "@repo/db/client"
 
-const wss = new WebSocketServer({ port: 8000 });
+const PORT = Number(process.env.PORT) || 8000
+
+const wss = new WebSocketServer({ port: PORT });
 
 //Global Variable to store users array
 interface User {

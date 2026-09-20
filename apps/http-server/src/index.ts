@@ -6,6 +6,7 @@ import { authMiddleware } from "./middleware.js";
 import {prismaClient} from "@repo/db/client"
 import bcrypt from "bcrypt";
 import cors from "cors";
+const PORT = Number(process.env.PORT) || 3003
 
 const app = express();
 
@@ -224,6 +225,8 @@ app.get("/health", (_req, res) => {
   res.send("ok")
 })
 
-app.listen(3003);
+app.listen(PORT , 
+  ()=> console.log("http server listening on",
+     PORT));
 
 
