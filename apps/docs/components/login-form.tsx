@@ -17,7 +17,7 @@ import {
   FieldSeparator,
 } from "@/components/ui/field"
 import { Input } from "@/components/ui/input"
-import Preview from "./preview"
+import { LoginArt } from "@/components/auth-art"
 
 export function LoginForm({
   className,
@@ -115,7 +115,7 @@ export function LoginForm({
             </FieldGroup>
           </form>
           <div className="relative hidden bg-muted md:block">
-             <Preview/>
+            <LoginArt />
           </div>
         </CardContent>
       </Card>

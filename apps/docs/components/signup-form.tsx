@@ -4,7 +4,6 @@ import { useRouter } from "next/navigation";
 import axios from "axios";
 import { HTTP_BACKEND } from "@/lib/config";
 import { cn } from "cn"
-import {Preview} from "@/components/preview"
 import { UserSchema } from "@repo/common"
 
 import { Button } from "@/components/ui/button"
@@ -18,6 +17,7 @@ import {
 } from "@/components/ui/field"
 import { Input } from "@/components/ui/input"
 import Link from "next/link";
+import { SignupArt } from "./auth-art";
 
 export function SignupForm({
   className,
@@ -119,7 +119,7 @@ setLoading(true)
             </FieldGroup>
           </form>
           <div className="relative hidden bg-muted md:block">
-           <Preview/>
+          <SignupArt/>
           </div>
         </CardContent>
       </Card>
