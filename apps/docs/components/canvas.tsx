@@ -215,6 +215,7 @@ export function Canvas({ roomId }: { roomId?: string }) {
   const [role, setRole] = useState<"unknown" | "admin" | "member">("unknown")
   const [slug, setSlug] = useState("")
   const [copied, setCopied] = useState(false)
+  const [disconnected, setDisconnected] = useState(false)
   const router = useRouter()
 
 function sessionExpired() {
@@ -607,6 +608,7 @@ const activateTextBox = (mx: number, my: number) => {
     wsRef.current=ws
    
     ws.onopen = () => { 
+      setDisconnected(false)
       ws.send(JSON.stringify({ type: "join_room", roomId }))
     }
 
@@ -648,9 +650,11 @@ const activateTextBox = (mx: number, my: number) => {
 
     ws.onerror = (err) => console.log("ws error:" , err)
     ws.onclose = (event) => {
-
-   console.log("ws closed", event.code)
-  if (event.code === 4001) sessionExpired()
+  if (event.code === 4001){
+     sessionExpired()
+     return
+  } 
+  setDisconnected(true)
   }
       
 
@@ -706,11 +710,17 @@ const activateTextBox = (mx: number, my: number) => {
 
 
   return (
-    <>
-
-
+    <div>
     <Toolbar tool={tool} onChange={chooseTool} />
     <div className="fixed right-4 top-4 z-10 flex items-center gap-2">
+      {roomId && disconnected && (
+         <div className="fixed bottom-4 left-1/2 z-10 flex -translate-x-1/2 items-center gap-3 rounded-full bg-neutral-900 px-4 py-2 text-sm text-white shadow-lg">
+          Connection lost. Your drawing isn&apos;t syncing.
+          <Button size="sm" onClick={() => window.location.reload()}>
+         Refresh
+        </Button>
+         </div>
+      )}
   <Button
     variant="outline"
     className="bg-white"
@@ -741,8 +751,7 @@ const activateTextBox = (mx: number, my: number) => {
   
 </div>
     
-
-      <canvas ref={canvasRef} className="block bg-white cursor-crosshair" />
-    </>
+<canvas ref={canvasRef} className="block bg-white cursor-crosshair" />
+    </div>
   )
 }
