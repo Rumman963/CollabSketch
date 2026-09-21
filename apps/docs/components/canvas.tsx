@@ -216,6 +216,8 @@ export function Canvas({ roomId }: { roomId?: string }) {
   const [slug, setSlug] = useState("")
   const [copied, setCopied] = useState(false)
   const [disconnected, setDisconnected] = useState(false)
+  const outboxRef = useRef<string[]>([])
+  const reloadHistoryRef = useRef<() => void>(() => {}) 
   const router = useRouter()
 
 function sessionExpired() {
@@ -314,23 +316,25 @@ async function inviteMembers() {
   }
 }
 
-const sendShape = (shape: Shape) => {
+const sendRaw = (text: string) => {
   const ws = wsRef.current
-  if (!roomId || !ws || ws.readyState !== WebSocket.OPEN) return
-  ws.send(
-    JSON.stringify({
-      type: "chat",
-      roomId,
-      message: JSON.stringify(shape),
-    })
-  )
+  if (ws && ws.readyState === WebSocket.OPEN) {
+    ws.send(text)
+  } else if (outboxRef.current.length < 500) {
+    outboxRef.current.push(text) // sent when the connection is back
+  }
+}
+
+const sendShape = (shape: Shape) => {
+  if (!roomId) return
+  sendRaw(JSON.stringify({ type: "chat", roomId, message: JSON.stringify(shape) }))
 }
 
 const sendToServer = (data: object) => {
-  const ws = wsRef.current
-  if (!roomId || !ws || ws.readyState !== WebSocket.OPEN) return
-  ws.send(JSON.stringify({ roomId, ...data }))
+  if (!roomId) return
+  sendRaw(JSON.stringify({ roomId, ...data }))
 }
+
 
 let erasing = false
 
@@ -604,79 +608,104 @@ const activateTextBox = (mx: number, my: number) => {
     }
   }, [roomId])
 
-  useEffect(()=>{
-    if(!roomId) return 
+
+useEffect(() => {
+  if (!roomId) return
+
+  let stopped = false
+  let retry = 0
+  let joinedBefore = false
+  let timer: ReturnType<typeof setTimeout> | undefined
+  let heartbeat: ReturnType<typeof setInterval> | undefined
+  let socket: WebSocket | null = null
+
+  const connect = () => {
     const token = localStorage.getItem("token")
-    if(!token){
+    if (!token) {
       sessionExpired()
       return
     }
 
     const ws = new WebSocket(`${WS_BACKEND}?token=${token}`)
-    wsRef.current=ws
-   
-    ws.onopen = () => { 
+    socket = ws
+    wsRef.current = ws
+
+    ws.onopen = () => {
+      retry = 0
       setDisconnected(false)
       ws.send(JSON.stringify({ type: "join_room", roomId }))
+      heartbeat = setInterval(() => {
+        if (ws.readyState === WebSocket.OPEN) {
+          ws.send(JSON.stringify({ type: "ping" }))
+        }
+      }, 25000)
     }
-
 
     ws.onmessage = (event) => {
-       console.log("ws in:", event.data)
-  try {
-    const data = JSON.parse(event.data)
-    if (String(data.roomId) !== String(roomId)) return
+      try {
+        const data = JSON.parse(event.data)
+        if (String(data.roomId) !== String(roomId)) return
 
-    if (data.type === "role") {
-      isAdminRef.current = data.isAdmin
-      setRole(data.isAdmin ? "admin" : "member")
-      if (data.slug) setSlug(data.slug)
+        if (data.type === "role") {
+          isAdminRef.current = data.isAdmin
+          setRole(data.isAdmin ? "admin" : "member")
+          if (data.slug) setSlug(data.slug)
+
+          // joined: send what was drawn while offline, then catch up
+          outboxRef.current.forEach((m) => ws.send(m))
+          outboxRef.current = []
+          if (joinedBefore) reloadHistoryRef.current()
+          joinedBefore = true
+        }
+
+        if (data.type === "chat") {
+          shapesRef.current.push(JSON.parse(data.message))
+          redrawRef.current()
+        }
+
+        if (data.type === "erase") {
+          shapesRef.current = shapesRef.current.filter(
+            (s) => JSON.stringify(s) !== data.message
+          )
+          redrawRef.current()
+        }
+
+        if (data.type === "clear") {
+          shapesRef.current = []
+          redrawRef.current()
+        }
+      } catch (e) {
+        console.log("could not read ws message", e)
+      }
     }
 
-    if (data.type === "chat") {
-      shapesRef.current.push(JSON.parse(data.message))
-      redrawRef.current()
-    }
-
-    if (data.type === "erase") {
-      shapesRef.current = shapesRef.current.filter(
-        (s) => JSON.stringify(s) !== data.message
-      )
-      redrawRef.current()
-    }
-
-    if (data.type === "clear") {
-      shapesRef.current = []
-      redrawRef.current()
-    }
-  } catch (e) {
-    console.log("could not read ws message", e)
-  }
-}
-
-
-
-    ws.onerror = (err) => console.log("ws error:" , err)
     ws.onclose = (event) => {
-  if (event.code === 4001){
-     sessionExpired()
-     return
-  } 
-  setDisconnected(true)
-  }
-      
-
-
-    return () => {
-      ws.close()
-      wsRef.current = null
+      clearInterval(heartbeat)
+      if (stopped) return
+      if (event.code === 4001) {
+        sessionExpired()
+        return
+      }
+      setDisconnected(true)
+      const wait = Math.min(1000 * 2 ** retry, 10000)
+      retry++
+      timer = setTimeout(connect, wait)
     }
+  }
 
-  },[roomId])
+  connect()
 
-  useEffect(() => {
+  return () => {
+    stopped = true
+    clearTimeout(timer)
+    clearInterval(heartbeat)
+    socket?.close()
+    wsRef.current = null
+  }
+}, [roomId])
+
+useEffect(() => {
   if (!roomId) return
-
   let cancelled = false
 
   async function loadHistory() {
@@ -687,28 +716,30 @@ const activateTextBox = (mx: number, my: number) => {
       })
       if (cancelled) return
 
+      const known = new Set(shapesRef.current.map((s) => JSON.stringify(s)))
       const history: Shape[] = []
       res.data.messages.forEach((m: { message: string }) => {
         try {
-          history.push(JSON.parse(m.message))
+          const shape = JSON.parse(m.message)
+          if (!known.has(JSON.stringify(shape))) history.push(shape)
         } catch {
-          // skip rows that aren't shapes (like the old test messages)
+          // skip rows that aren't shapes
         }
       })
 
-      // put old shapes first, keep anything that arrived live in the meantime
       shapesRef.current = [...history, ...shapesRef.current]
       redrawRef.current()
-    } catch (e:any) {
-       const status = e.response?.status
-       if (status === 401 || status === 403) {
-       sessionExpired()
-       return
-  }
+    } catch (e: any) {
+      const status = e.response?.status
+      if (status === 401 || status === 403) {
+        sessionExpired()
+        return
+      }
       console.log("could not load history", e)
     }
   }
 
+  reloadHistoryRef.current = loadHistory
   loadHistory()
 
   return () => {
@@ -717,18 +748,20 @@ const activateTextBox = (mx: number, my: number) => {
 }, [roomId])
 
 
+
   return (
     <div>
     <Toolbar tool={tool} onChange={chooseTool} />
     <div className="fixed right-4 top-4 z-10 flex items-center gap-2">
-      {roomId && disconnected && (
-         <div className="fixed bottom-4 left-1/2 z-10 flex -translate-x-1/2 items-center gap-3 rounded-full bg-neutral-900 px-4 py-2 text-sm text-white shadow-lg">
-          Connection lost. Your drawing isn&apos;t syncing.
-          <Button size="sm" onClick={() => window.location.reload()}>
-         Refresh
-        </Button>
-         </div>
-      )}
+     {roomId && disconnected && (
+  <div className="fixed bottom-4 left-1/2 z-10 flex -translate-x-1/2 items-center gap-3 rounded-full bg-neutral-900 px-4 py-2 text-sm text-white shadow-lg">
+    Connection lost. Reconnecting...
+    <Button size="sm" onClick={() => window.location.reload()}>
+      Refresh
+    </Button>
+  </div>
+)} 
+    
   <Button
     variant="outline"
     className="bg-white"

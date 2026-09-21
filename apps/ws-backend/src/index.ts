@@ -112,26 +112,11 @@ ws.on("close" , ()=>{
     
 
     if(parseData.type === "chat"){
+      const out = JSON.stringify({ type: "chat", message: parseData.message, roomId })
 
       users.forEach(user =>{
 
-        if(user.ws !== ws && user.rooms.includes(roomId)){
-
-          user.ws.send(JSON.stringify({
-
-            type:"chat",
-
-            message:parseData.message,
-
-            roomId
-
-             
-
-          }))
-
-
-
-        }
+        if(user.ws !== ws && user.rooms.includes(roomId)) user.ws.send(out)
 
       })
 
@@ -143,11 +128,12 @@ ws.on("close" , ()=>{
 
   if (parseData.type === "erase") {
 
+    const out = JSON.stringify({ type: "erase", message: parseData.message, roomId })
 
   users.forEach(u => {
-    if (u.ws !== ws && u.rooms.includes(roomId)) {
-      u.ws.send(JSON.stringify({ type: "erase", message: parseData.message, roomId }));
-    }
+    
+    if (u.ws !== ws && u.rooms.includes(roomId)) 
+      u.ws.send(out);
   });
 
    await prismaClient.chat.deleteMany({
