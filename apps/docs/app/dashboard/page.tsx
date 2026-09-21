@@ -12,7 +12,6 @@ import { Card, CardContent } from "@/components/ui/card"
 import { FlickeringGrid } from "@/components/ui/flickering-grid"
 import { CreateRoomSchema } from "@repo/common/configs"
 
-// dotted paper background that follows the theme text color
 const dots = {
   backgroundImage:
     "radial-gradient(color-mix(in oklab, var(--foreground) 14%, transparent) 1px, transparent 1px)",
@@ -43,7 +42,7 @@ export default function Dashboard() {
   function handleError(err: any) {
     const status = err.response?.status
     if (status === 401 || status === 403) {
-      logout() // token is missing, wrong, or expired
+      logout() 
       return
     }
     setError(err.response?.data?.message || "Something went wrong")
@@ -100,7 +99,7 @@ export default function Dashboard() {
   <div className="relative flex min-h-svh flex-col overflow-hidden bg-background text-foreground">
   <FlickeringGrid
     className="absolute inset-0 z-0 size-full"
-    squareSize={4}
+    squareSize={10}
     gridGap={6}
     color="#6B7280"
     maxOpacity={0.3}

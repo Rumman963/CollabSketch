@@ -16,6 +16,7 @@ import { Preview } from "@/components/preview"
 import { Button } from "@/components/ui/button"
 import { FlickeringGrid } from "@/components/ui/flickering-grid"
 
+
 const features = [
   {
     icon: Users,
@@ -65,13 +66,16 @@ export default function Home() {
 
   return (
     <div className="relative min-h-svh bg-[#f6f5f3] text-neutral-900">
-  <FlickeringGrid
-    className="pointer-events-none fixed inset-0 z-0 size-full"
-    squareSize={4}
-    gridGap={6}
-    color="#6B7280"
-    maxOpacity={0.25}
-    flickerChance={0.1}
+
+      
+  
+<FlickeringGrid
+  className="pointer-events-none fixed inset-0 z-0 size-full"
+  squareSize={10}
+  gridGap={6}
+  color="#6B7280"
+  maxOpacity={0.25}
+  flickerChance={0.1}
   />
   <div className="relative z-10"></div>
     
