@@ -1,159 +1,97 @@
-# Turborepo starter
+<div align="center">
 
-This Turborepo starter is maintained by the Turborepo core team.
+# CollabSketch
 
-## Using this example
+**A real-time collaborative whiteboard, inspired by Excalidraw.**
+Sketch on your own, or draw together with your team, live.
 
-Run the following command:
+[Live demo](https://collab-sketch-docs-wwrb.vercel.app)
 
-```sh
-npx create-turbo@latest
+![Next.js](https://img.shields.io/badge/Next.js-16-black?logo=nextdotjs)
+![TypeScript](https://img.shields.io/badge/TypeScript-strict-3178C6?logo=typescript&logoColor=white)
+![PostgreSQL](https://img.shields.io/badge/PostgreSQL-Neon-4169E1?logo=postgresql&logoColor=white)
+![Prisma](https://img.shields.io/badge/Prisma-7-2D3748?logo=prisma)
+![Turborepo](https://img.shields.io/badge/Turborepo-monorepo-EF4444?logo=turborepo&logoColor=white)
+
+</div>
+
+> The demo runs on free hosting, so the first request can take about a minute while the servers wake up.
+
+## Features
+
+- Draw with rectangles, diamonds, circles, arrows, lines, a freehand pencil, text and an eraser
+- **Solo mode**: no account needed, saved automatically in the browser
+- **Collab rooms**: create or join by name, shapes appear live for everyone, history loads on join
+- Only the room creator can clear the room for everyone; participants only clear their own screen
+- Invite links, Save as PNG, JWT auth with expiring tokens, input validated with shared zod schemas
+
+## Tech stack
+
+Next.js, React, TypeScript, Tailwind, shadcn/ui — Express, `ws` — PostgreSQL (Neon) with Prisma 7 — Turborepo + pnpm — deployed on Vercel and Render
+
+## Architecture
+
+```mermaid
+flowchart LR
+    Browser["Next.js app<br/>(Vercel)"] -- "REST: auth, rooms, history" --> HTTP["http-server<br/>(Express)"]
+    Browser -- "WebSocket: live drawing" --> WS["ws-backend<br/>(ws)"]
+    HTTP --> DB[("PostgreSQL<br/>(Neon)")]
+    WS --> DB
 ```
 
-## What's inside?
+Every shape is a small typed object, e.g. `{ type: "rect", x, y, w, h }`. The same object is used for drawing, solo-mode storage, the WebSocket message, and the database row. A shape draws instantly on the sender's screen, then is sent to the server, saved, and forwarded to everyone else in the room.
 
-This Turborepo includes the following packages/apps:
+**WebSocket messages:** `join_room`, `chat` (a shape), `erase`, `clear` — and `role`, sent back to tell a client if it's the room admin.
 
-### Apps and Packages
+**REST API:** `POST /signup`, `POST /signin`, `POST /room`, `GET /room/:slug`, `GET /chats/:roomId`, `GET /health`.
 
-- `docs`: a [Next.js](https://nextjs.org/) app
-- `web`: another [Next.js](https://nextjs.org/) app
-- `@repo/ui`: a stub React component library shared by both `web` and `docs` applications
-- `@repo/eslint-config`: `eslint` configurations (includes `@next/eslint-plugin-next` and `eslint-config-prettier`)
-- `@repo/typescript-config`: `tsconfig.json`s used throughout the monorepo
+## Project structure
 
-Each package/app is 100% [TypeScript](https://www.typescriptlang.org/).
-
-### Utilities
-
-This Turborepo has some additional tools already setup for you:
-
-- [TypeScript](https://www.typescriptlang.org/) for static type checking
-- [ESLint](https://eslint.org/) for code linting
-- [Prettier](https://prettier.io) for code formatting
-
-### Build
-
-To build all apps and packages, run the following command:
-
-With [global `turbo`](https://turborepo.dev/docs/getting-started/installation#global-installation) installed (recommended):
-
-```sh
-cd my-turborepo
-turbo build
+```
+apps/
+  docs/         # Next.js frontend
+  http-server/  # Express REST API
+  ws-backend/   # WebSocket server
+packages/
+  common/           # shared zod schemas
+  backend-common/   # shared server config
+  db/               # Prisma schema and client
 ```
 
-Without global `turbo`, use your package manager:
+## Running it locally
 
-```sh
-cd my-turborepo
-npx turbo build
-pnpm exec turbo build
-pnpm exec turbo build
+```bash
+pnpm install
 ```
 
-You can build a specific package by using a [filter](https://turborepo.dev/docs/crafting-your-repository/running-tasks#using-filters):
+Create `.env` files with `DATABASE_URL` (a PostgreSQL connection string) in `apps/http-server`, `apps/ws-backend`, and `packages/db`, plus a shared `JWT_SECRET` in the first two. Then:
 
-With [global `turbo`](https://turborepo.dev/docs/getting-started/installation#global-installation) installed:
-
-```sh
-turbo build --filter=docs
+```bash
+pnpm --filter @repo/db exec prisma migrate deploy
+pnpm --filter @repo/db exec prisma generate
+pnpm dev
 ```
 
-Without global `turbo`:
+| Service | URL |
+| --- | --- |
+| Frontend | http://localhost:3002 |
+| REST API | http://localhost:3003 |
+| WebSocket | ws://localhost:8000 |
 
-```sh
-npx turbo build --filter=docs
-pnpm exec turbo build --filter=docs
-pnpm exec turbo build --filter=docs
-```
+## Deployment
 
-### Develop
+Frontend on Vercel (root directory `apps/docs`), the two backends as separate Render web services sharing one `JWT_SECRET` and `DATABASE_URL`, database on Neon. A cron job pings `/health` every 10 minutes to keep the free API instance awake.
 
-To develop all apps and packages, run the following command:
+## Roadmap
 
-With [global `turbo`](https://turborepo.dev/docs/getting-started/installation#global-installation) installed (recommended):
+- [ ] Automatic WebSocket reconnect
+- [ ] Stroke color and width panel, undo/redo, zoom
+- [ ] Private rooms with invite codes
 
-```sh
-cd my-turborepo
-turbo dev
-```
+## License
 
-Without global `turbo`, use your package manager:
+MIT
 
-```sh
-cd my-turborepo
-npx turbo dev
-pnpm exec turbo dev
-pnpm exec turbo dev
-```
+---
 
-You can develop a specific package by using a [filter](https://turborepo.dev/docs/crafting-your-repository/running-tasks#using-filters):
-
-With [global `turbo`](https://turborepo.dev/docs/getting-started/installation#global-installation) installed:
-
-```sh
-turbo dev --filter=web
-```
-
-Without global `turbo`:
-
-```sh
-npx turbo dev --filter=web
-pnpm exec turbo dev --filter=web
-pnpm exec turbo dev --filter=web
-```
-
-### Remote Caching
-
-> [!TIP]
-> Vercel Remote Cache is free for all plans. Get started today at [vercel.com](https://vercel.com/signup?utm_source=remote-cache-sdk&utm_campaign=free_remote_cache).
-
-Turborepo can use a technique known as [Remote Caching](https://turborepo.dev/docs/core-concepts/remote-caching) to share cache artifacts across machines, enabling you to share build caches with your team and CI/CD pipelines.
-
-By default, Turborepo will cache locally. To enable Remote Caching you will need an account with Vercel. If you don't have an account you can [create one](https://vercel.com/signup?utm_source=turborepo-examples), then enter the following commands:
-
-With [global `turbo`](https://turborepo.dev/docs/getting-started/installation#global-installation) installed (recommended):
-
-```sh
-cd my-turborepo
-turbo login
-```
-
-Without global `turbo`, use your package manager:
-
-```sh
-cd my-turborepo
-npx turbo login
-pnpm exec turbo login
-pnpm exec turbo login
-```
-
-This will authenticate the Turborepo CLI with your [Vercel account](https://vercel.com/docs/concepts/personal-accounts/overview).
-
-Next, you can link your Turborepo to your Remote Cache by running the following command from the root of your Turborepo:
-
-With [global `turbo`](https://turborepo.dev/docs/getting-started/installation#global-installation) installed:
-
-```sh
-turbo link
-```
-
-Without global `turbo`:
-
-```sh
-npx turbo link
-pnpm exec turbo link
-pnpm exec turbo link
-```
-
-## Useful Links
-
-Learn more about the power of Turborepo:
-
-- [Tasks](https://turborepo.dev/docs/crafting-your-repository/running-tasks)
-- [Caching](https://turborepo.dev/docs/crafting-your-repository/caching)
-- [Remote Caching](https://turborepo.dev/docs/core-concepts/remote-caching)
-- [Filtering](https://turborepo.dev/docs/crafting-your-repository/running-tasks#using-filters)
-- [Configuration Options](https://turborepo.dev/docs/reference/configuration)
-- [CLI Usage](https://turborepo.dev/docs/reference/command-line-reference)
+Built by [@Rumman963](https://github.com/Rumman963), inspired by [Excalidraw](https://excalidraw.com).
